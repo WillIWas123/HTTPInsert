@@ -30,7 +30,8 @@ There are countless scanners parsing for insertion points in their own unique wa
 ## Example usage
 
 ```python
-from httpinsert import Location, InsertionPoint,find_insertion_points,requests_request
+from httpinsert import Location, requests_request
+from httpinsert.insertion_points import InsertionPoint, find_insertion_points
 from requests import Request
 
 requests_req = Request("GET","https://example.com/endpoint?param=value&other=param")

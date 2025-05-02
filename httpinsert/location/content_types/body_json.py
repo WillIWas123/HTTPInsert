@@ -77,5 +77,5 @@ class Body(Location):
             return main_data
         json_data = json.loads(request.body)
         json_data = update_json_with_payload(json_data, insertion_point.key, payload)
-        request.body=json.dumps(json_data)
+        request.body=json.dumps(json_data).encode()
         return request,request.body

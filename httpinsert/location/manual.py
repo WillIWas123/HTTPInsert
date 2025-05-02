@@ -54,9 +54,9 @@ class Manual(Location):
         # Find manual body parameters
         new_body=request.body
         if request.body:
-            for c,_ in enumerate(range(request.body.count("FUZZ"))):
-                new_body=new_body.replace("FUZZ",f"FUZ{c}Z",1)
-                insertion_points.append(InsertionPoint(self,"body", f"FUZ{c}Z", ""))
+            for c,_ in enumerate(range(request.body.count(b"FUZZ"))):
+                new_body=new_body.replace(b"FUZZ",f"FUZ{c}Z".encode(),1)
+                insertion_points.append(InsertionPoint(self,"body", f"FUZ{c}Z".encode(), ""))
             request.body=new_body
 
         return insertion_points
@@ -103,7 +103,7 @@ class Manual(Location):
     def insert_payload_body(self,request,insertion_point,payload,default_encoding):
         if default_encoding is True:
             payload=quote(payload)
-        modified_body = request.body.replace(insertion_point.key,payload)
+        modified_body = request.body.replace(insertion_point.key,payload.encode())
         request.body=modified_body
         return request,modified_body
 

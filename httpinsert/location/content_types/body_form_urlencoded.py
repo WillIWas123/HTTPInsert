@@ -13,7 +13,7 @@ class Body(Location):
             keys[key]+=1
             insertion_points.append(InsertionPoint(self,"body",key,value,index=keys[key],key_param=True,default=False))
             insertion_points.append(InsertionPoint(self,"body",key,value,index=keys[key]))
-        insertion_points.append(InsertionPoint(self,"body", "", "1",new_param=True,default=False))
+        insertion_points.append(InsertionPoint(self,"body", "", b"1",new_param=True,default=False))
         insertion_points.append(InsertionPoint(self,"body","full",request.body,default=False,full=True)) # Modify the entire body at once
         return insertion_points
 
@@ -23,20 +23,19 @@ class Body(Location):
         if default_encoding is True:
             if isinstance(payload,str):
                 payload=quote(payload) # Encode the payload
-            else:
-                payload = [quote(i) for i in payload]
 
+        payload = payload.encode()
         if insertion_point.full is True:
             request.body=payload
             return request,request.body
-        body_params = parse_qsl(request.body,keep_blank_values=True)
 
-        modified_body = []
+        body_params = parse_qsl(request.body,keep_blank_values=True)
 
         if insertion_point.new_param is True:
             modified_body = body_params
             modified_body.append((payload,insertion_point.value))
         else:
+            modified_body = []
             keys = {}
             for key,value in body_params:
                 if key not in keys.keys():
@@ -50,8 +49,9 @@ class Body(Location):
                 else:
                     modified_body.append((key,value))
 
-        quote_via=lambda a,*args,**kwargs:a # Remove any url encoding on the rest of the body
-        body = urlencode(modified_body,doseq=True,quote_via=quote_via)
-        request.body=body
-        return request,body
+        parts = []
+        for key,value in modified_body:
+            parts.append(key + b"=" + value)
 
+        request.body=b"&".join(parts)
+        return request,request.body

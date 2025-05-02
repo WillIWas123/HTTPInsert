@@ -35,20 +35,20 @@ def find_insertion_points(request,location=None,location_key=None,key=None,value
 def insert_payload(request, insertion_point, payload,default_encoding=True,format_payload=False):
     return insertion_point.insert(request,payload,default_encoding=default_encoding,format_payload=format_payload)
 
-# TODO: use new python features here for accepting different argument types
-def remove_placeholders_string(string):
-    return re.sub(r"FUZ\d*Z","",string)
-
-def remove_placeholders_headers(headers):
-    new_headers = Headers()
-    for k,v in headers.items():
-        new_headers[re.sub(r"FUZ\d*Z","",k)] = re.sub(r"FUZ\d*Z","",v)
-    return new_headers
-
 def remove_placeholders(request):
+    if isinstance(request,str):
+        return re.sub(r"FUZ\d*Z","",request)
+    elif isinstance(request,bytes):
+        return re.sub(rb"FUZ\d*Z",b"",request)
+    elif isinstance(request,Headers) or isinstance(request,dict):
+        new_headers = Headers()
+        for k,v in request.items():
+            new_headers[re.sub(r"FUZ\d*Z","",k)] = re.sub(r"FUZ\d*Z","",v)
+        return new_headers
+
     request.url=re.sub(r"FUZ\d*Z","",request.url)
     if request.body:
-        request.body=re.sub(r"FUZ\d*Z","",request.body)
+        request.body=re.sub(rb"FUZ\d*Z",b"",request.body)
     new_headers=Headers()
     for k,v in request.headers.items():
         k = re.sub(r"FUZ\d*Z","",k)
@@ -85,33 +85,33 @@ class InsertionPoint:
         return Insertion(self,payload,request,format_payload=format_payload,payload_formatter=self.payload_formatter,default_encoding=default_encoding)
 
     def __repr__(self):
-        # TODO: consider rewriting __repr__
-        full=""
-        key=""
-        default=""
-        new=""
-        index=""
-        value=""
-        if self.full:
-            full = " full=True"
-        if self.key_param:
-            key = " key_param=True"
-        if self.default is False:
-            default = " default=False"
-        if self.new_param is True:
-            new = " new_param=True"
-        if self.index > 0:
-            index= f" index={self.index}"
+        attributes = [
+            f"location={self.location}",
+            f"location_key={self.location_key}",
+            f"key={self.key}",
+        ]
+
         if self.value:
-            value = f" value={self.value}"
-        return f"<InsertionPoint location={self.location} location_key={self.location_key} key={self.key}{value}{full}{key}{default}{new}{index}>"
+            attributes.append(f"value={self.value}")
+        if self.default is False:
+            attributes.append("default=False")
+        if self.full:
+            attributes.append("full=True")
+        if self.key_param:
+            attributes.append("key_param=True")
+        if self.new_param is True:
+            attributes.append("new_param=True")
+        if self.index > 0:
+            attributes.append(f"index={self.index}")
+
+        return f"<InsertionPoint {' '.join(attributes)}>"
 
 class Insertion:
     def __init__(self,insertion_point,payload,req,format_payload=False,payload_formatter=None,default_encoding=True):
         self.default_encoding=default_encoding # Should we use the default encoding, False means no encoding at all
         self.payload=payload
         self.default_encoding = default_encoding
-        self.full_part = None
+        self.full_section = None
         if format_payload is True:
             payload_formatter = payload_formatter or PayloadFormatter()
             self.payload = payload_formatter.format(payload,old=str(insertion_point.value))
@@ -119,15 +119,8 @@ class Insertion:
         self.req=req.copy()
 
     def insert_request(self,request):
-        request, full_part = self.insertion_point.location.insert_payload(request,self.insertion_point,self.payload,self.default_encoding)
-        if isinstance(full_part,str):
-            self.full_part = remove_placeholders_string(full_part)
-        elif isinstance(full_part, Headers):
-            self.full_part = remove_placeholders_headers(full_part)
-        elif isinstance(full_part,request):
-            self.full_part = remove_placeholders(full_part)
-        else:
-            self.full_part = full_part
+        request, full_section = self.insertion_point.location.insert_payload(request,self.insertion_point,self.payload,self.default_encoding)
+        self.full_section = remove_placeholders(full_section)
         return request
 
     def send(self, **kwargs):

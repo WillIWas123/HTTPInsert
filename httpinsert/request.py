@@ -16,22 +16,22 @@ http.client._is_legal_header_name = lambda a:True # Disables verification of hea
 
 def raw_request(scheme,data):
     
-    lines = data.split("\n")
+    lines = data.split(b"\n")
     # Keeping version here for future reference when urllib starts supporting HTTP2
-    method, path, version = lines[0].split()
+    method, path, version = lines[0].decode().split()
     
     headers = Headers()
     host = None
-    body = None # TODO: Add support for bytes instead of using strings. Consider removing strings all together
+    body = None 
     for c, line in enumerate(lines[1:]):
         if not line:
-            body = "\n".join(lines[c+2:])
+            body = b"\n".join(lines[c+2:])
             break
-        key,value = line.split(":", 1)
-        if key.strip().lower() == "host":
-            host = value.strip()
+        key,value = line.split(b":", 1)
+        if key.strip().lower() == b"host":
+            host = value.strip().decode()
             continue # Don't add Host header to the headers, this will cause issues
-        headers[key.strip()] = value
+        headers[key.strip().decode()] = value.decode()
     if not host: # TODO: remove this constraint, especially when HTTP2 is supported in the future
         print("Need to specify a Host header!")
         sys.exit(1)
@@ -94,8 +94,10 @@ class Request:
         """String representation of the HTTP request."""
         request_line = f"{self.method} {self.url} HTTP/1.1"
         headers = "\n".join(f"{k}: {v}" for k, v in self._headers.items())
-        body = self.body or ""
-        return f"{request_line}\n{headers}\n\n{body.decode()}"
+        if headers:
+            headers += "\n"
+        body = self.body or b""
+        return remove_placeholders(f"{request_line}\nHost: {self.host}\n{headers}\n{body.decode()}")
 
     def send(self, method=None,url=None,headers=None,data=None, insertions=None,debug=False,**kwargs):
         """Send the HTTP request using the requests library."""
@@ -122,7 +124,7 @@ class Request:
         prepped.headers = request.headers or self.headers
         if body and prepped.headers.get("Content-Length") is None: # Repairing Content-Length if no custom Content-Length header is set
             prepped.headers = prepped.headers.copy() # Ensuring original headers are untouched
-            prepped.headers['Content-Length']= str(len(body))
+            prepped.headers['Content-Length']= len(body)
         start_time = time.perf_counter()
         try:
             response=current_session.send(prepped,**kwargs)

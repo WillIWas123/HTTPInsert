@@ -56,10 +56,10 @@ class Headers(Location):
             request._headers = headers
             return request, headers
 
-        full_part = None
+        full_section = None
         for payload in payloads:
-            request, full_part = self.insert_payload(request,insertion_point,payload,default_encoding)
-        return request, full_part
+            request, full_section = self.insert_payload(request,insertion_point,payload,default_encoding)
+        return request, full_section
 
 
 

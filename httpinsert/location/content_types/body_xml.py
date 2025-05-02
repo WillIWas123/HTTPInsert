@@ -29,11 +29,11 @@ class Body(Location):
     def find_insertion_points(self, request):
         insertion_points=[]
 
-        xml_content = request.body.replace("&","&amp;")
+        xml_content = request.body.replace(b"&",b"&amp;")
         parser = etree.XMLParser(recover=True)
         try:
-            tree = etree.fromstring(xml_content.encode('utf-8'), parser)
-            if request.body.strip().startswith("<?xml"):
+            tree = etree.fromstring(xml_content, parser)
+            if request.body.strip().startswith(b"<?xml"):
                 docinfo = tree.getroottree().docinfo
                 insertion_points.append(InsertionPoint(self,"body-xml-version","version",docinfo.xml_version,default=False))
                 insertion_points.append(InsertionPoint(self,"body-xml-encoding","encoding",docinfo.encoding,default=False))
@@ -47,39 +47,39 @@ class Body(Location):
 
     def insert_payload(self,request,insertion_point,payload,default_encoding):
         if insertion_point.full is True:
-            request.body = payload
+            request.body = payload.encode()
             return request,request.body
         version=False
-        if request.body.strip().startswith("<?xml"):
+        if request.body.strip().startswith(b"<?xml"):
             version=True
-        xml_content = request.body.replace("&","&amp;")
+        xml_content = request.body.replace(b"&",b"&amp;")
         parser = etree.XMLParser(recover=True)
 
         try:
-            tree = etree.fromstring(xml_content.encode('utf-8'),parser)
+            tree = etree.fromstring(xml_content,parser)
             docinfo = tree.getroottree().docinfo
         except Exception as e:
             print(f"Your payload does not seem to play nice with XML: {e}")
             return request,request.body
 
         if insertion_point.location_key == "body-xml-version":
-            reconstructed_xml = f'<?xml version="{payload}" encoding="{docinfo.encoding}"?>\n' if version else ""
+            reconstructed_xml = f'<?xml version="{payload}" encoding="{docinfo.encoding}"?>\n'.encode() if version else b""
             if docinfo.doctype:
-                reconstructed_xml += docinfo.doctype + "\n"
+                reconstructed_xml += docinfo.doctype.encode() + b"\n"
         elif insertion_point.location_key == "body-xml-encoding":
-            reconstructed_xml = f'<?xml version="{docinfo.xml_version}" encoding="{payload}"?>\n' if version else ""
+            reconstructed_xml = f'<?xml version="{docinfo.xml_version}" encoding="{payload}"?>\n'.encode() if version else b""
             if docinfo.doctype:
-                reconstructed_xml += docinfo.doctype + "\n"
+                reconstructed_xml += docinfo.doctype.encode() + b"\n"
         elif insertion_point.location_key == "body-xml-doctype":
-            reconstructed_xml = f'<?xml version="{docinfo.xml_version}" encoding="{docinfo.encoding}"?>\n' if version else ""
-            reconstructed_xml += payload+"\n"
+            reconstructed_xml = f'<?xml version="{docinfo.xml_version}" encoding="{docinfo.encoding}"?>\n'.encode() if version else b""
+            reconstructed_xml += payload.encode()+b"\n"
         else:
-            reconstructed_xml = f'<?xml version="{docinfo.xml_version}" encoding="{docinfo.encoding}"?>\n' if version else ""
+            reconstructed_xml = f'<?xml version="{docinfo.xml_version}" encoding="{docinfo.encoding}"?>\n'.encode() if version else b""
             if docinfo.doctype:
-                reconstructed_xml += docinfo.doctype + "\n"
+                reconstructed_xml += docinfo.doctype.encode() + b"\n"
             self.insert_payload_xml_body(insertion_point,payload,tree)
-        reconstructed_xml += etree.tostring(tree, pretty_print=True, encoding="unicode")
-        request.body = reconstructed_xml.replace("&amp;","&").strip()
+        reconstructed_xml += etree.tostring(tree, pretty_print=True, encoding="utf-8")
+        request.body = reconstructed_xml.replace(b"&amp;",b"&").strip()
         return request, request.body
 
     def insert_payload_xml_body(self,insertion_point, payload, element, path=""):

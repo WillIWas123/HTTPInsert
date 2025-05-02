@@ -43,8 +43,8 @@ payload = "SomePayloadToInject"
 for insertion_point in insertion_points:
     insertion = insertion_point.insert(payload,httpinsert_request,format_payload=True)
     resp, response_time, error = httpinsert_request.send(insertions=[insertion])
-    print(resp,response_time,error,insertion.full_part) # full_part is the full part after the payload is injected. In this case full_part is the full URL.
-    print(insertion.full_part == resp.request.url) # True
+    print(resp,response_time,error,insertion.full_section) # full_section is the full section after the payload is injected. In this case full_section is the full URL.
+    print(insertion.full_section == resp.request.url) # True
 
 ```
 

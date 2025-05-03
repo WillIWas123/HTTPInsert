@@ -134,7 +134,7 @@ class Request:
         except Exception as e:
             response_time = (time.perf_counter() - start_time)*1000
             if debug is True:
-                print(f"Error occured: {e}")
+                print(f"Error occurred: {e}")
             error = str(type(e)).encode()
 
         return response,response_time,error

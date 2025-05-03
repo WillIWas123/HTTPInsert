@@ -63,6 +63,8 @@ class Request:
         self._cookies = self._headers.get("cookie")
         self.body = body
         self.host=host or self.url.split("/")[2]
+        if version == "HTTP/2": # TODO: remove this constraint when requests gets support for HTTP2
+            version = "HTTP/1.1" 
         self.version = version or "HTTP/1.1"
 
     def copy(self):

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as f:
     LONG_DESCRIPTION = f.read()
 
-VERSION = "2.0.2"
+VERSION = "3.0.0"
 DESCRIPTION = "HTTPInsert - Inserting payloads into all sections of HTTP requests"
 
 setup(

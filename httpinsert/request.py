@@ -6,7 +6,6 @@ import json
 import http
 import urllib3
 from http.client import HTTPConnection
-import sys
 from httpinsert import Headers
 from httpinsert.insertion_points import remove_placeholders
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -33,8 +32,7 @@ def raw_request(scheme,data):
             continue # Don't add Host header to the headers, this will cause issues
         headers[key.strip().decode()] = value.decode()
     if not host: # TODO: remove this constraint, especially when HTTP2 is supported in the future
-        print("Need to specify a Host header!")
-        sys.exit(1)
+        return None
 
     url = f"{scheme}://{host}{path}"
     return Request(method=method,url=url,headers=headers,body=body,host=host,version=version)
@@ -133,8 +131,6 @@ class Request:
             response_time = (time.perf_counter() - start_time)*1000
         except Exception as e:
             response_time = (time.perf_counter() - start_time)*1000
-            if debug is True:
-                print(f"Error occurred: {e}")
-            error = str(type(e)).encode()
+            error = e
 
         return response,response_time,error

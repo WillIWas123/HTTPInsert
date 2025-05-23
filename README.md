@@ -1,6 +1,6 @@
 # HTTPInsert
 
-A library written for finding insertion points in HTTP requests and injecting palyoads.
+A library written for finding insertion points in HTTP requests and injecting payloads.
 
 - [Disclaimer](https://github.com/WillIWas123/HTTPInsert#disclaimer)
 - [About](https://github.com/WillIWas123/HTTPInsert#about)

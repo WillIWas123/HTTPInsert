@@ -8,6 +8,13 @@ class Manual(Location):
     def find_insertion_points(self,request):
         insertion_points=[]
 
+        method = request.method
+        if "FUZZ" in request.method:
+            for c,_ in enumerate(range(method.count("FUZZ"))):
+                method =method.replace("FUZZ",f"FUZ{c}Z",1)
+                insertion_points.append(InsertionPoint(self,"method",f"FUZ{c}Z",""))
+        request.method = method
+
         parsed_url = urlparse(request.url)
         # Find manual path parameters
         path = parsed_url.path
@@ -62,7 +69,9 @@ class Manual(Location):
         return insertion_points
 
     def insert_payload(self,request,insertion_point,payload,default_encoding):
-        if insertion_point.location_key == "query":
+        if insertion_point.location_key == "method":
+            return self.insert_payload_method(request,insertion_point,payload,default_encoding)
+        elif insertion_point.location_key == "query":
             return self.insert_payload_query(request,insertion_point,payload,default_encoding)
         elif insertion_point.location_key == "path":
             return self.insert_payload_path(request,insertion_point,payload,default_encoding)
@@ -70,6 +79,12 @@ class Manual(Location):
             return self.insert_payload_header(request,insertion_point,payload,default_encoding)
         elif insertion_point.location_key == "body":
             return self.insert_payload_body(request,insertion_point,payload,default_encoding)
+    
+    def insert_payload_method(self,request,insertion_point,payload,default_encoding):
+        if default_encoding is True:
+            payload = quote(payload)
+        request.method = request.method.replace(insertion_point.key,payload)
+        return request,request.method
 
     def insert_payload_query(self,request,insertion_point,payload,default_encoding):
         if default_encoding is True:

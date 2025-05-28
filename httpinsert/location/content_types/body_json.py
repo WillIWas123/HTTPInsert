@@ -54,7 +54,10 @@ class Body(Location):
                     if idx == len(keys) - 1:
                         if isinstance(data, list):
                             if insertion_point.new_param is True and isinstance(data[index],dict):
-                                data[index][payload] = insertion_point.value
+                                if isinstance(payload,tuple):
+                                    data[index][payload[0]] = payload[1]
+                                else:
+                                    data[index][payload] = insertion_point.value
                             else:
                                 data[index] = payload
                         else:
@@ -63,7 +66,10 @@ class Body(Location):
                         data = data[index] if isinstance(data, list) else data[base_key][index]
                 elif idx == len(keys) - 1:
                     if insertion_point.new_param is True:
-                        data[payload] = insertion_point.value
+                        if isinstance(payload,tuple):
+                            data[payload[0]] = payload[1]
+                        else:
+                            data[payload] = insertion_point.value
                     elif isinstance(data, list):
                         data[int(key)] = payload
                     else:

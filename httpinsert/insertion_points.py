@@ -115,7 +115,10 @@ class Insertion:
         self.full_section = None
         if format_payload is True:
             payload_formatter = payload_formatter or PayloadFormatter()
-            self.payload = payload_formatter.format(payload,old=str(insertion_point.value))
+            if isinstance(payload,tuple):
+                self.payload = (payload_formatter.format(payload[0],old=""), payload_formatter.format(payload[1],old=""))
+            else:
+                self.payload = payload_formatter.format(payload,old=str(insertion_point.value))
         self.insertion_point=insertion_point
         self.req=req.copy()
 

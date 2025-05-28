@@ -33,7 +33,10 @@ class Body(Location):
 
         if insertion_point.new_param is True:
             modified_body = body_params
-            modified_body.append((payload,insertion_point.value))
+            if isinstance(payload,tuple):
+                modified_body.append(payload)
+            else:
+                modified_body.append((payload,insertion_point.value))
         else:
             modified_body = []
             keys = {}

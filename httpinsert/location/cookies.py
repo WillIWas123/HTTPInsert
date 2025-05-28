@@ -9,7 +9,10 @@ class Cookies(Location):
         cookies = request.cookies
 
         if insertion_point.new_param is True:
-            cookies[payload] = insertion_point.value
+            if isinstance(payload,tuple):
+                cookies[payload[0]] = payload[1]
+            else:
+                cookies[payload] = insertion_point.value
             request._cookies = cookies
             return request, headers
 

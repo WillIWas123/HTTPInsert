@@ -30,7 +30,10 @@ class Query(Location):
 
         if insertion_point.new_param is True:
             modified_query = query_params
-            modified_query.append((payload, insertion_point.value))
+            if isinstance(payload,tuple):
+                modified_query.append(payload)
+            else:
+                modified_query.append((payload, insertion_point.value))
         else:
             keys = {}
 

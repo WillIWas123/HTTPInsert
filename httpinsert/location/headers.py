@@ -25,7 +25,10 @@ class Headers(Location):
         headers = request.headers
 
         if insertion_point.new_param is True:
-            headers._headers[payload] = [insertion_point.value]
+            if isinstance(payload,tuple):
+                headers._headers[payload[0]] = [payload[1]]
+            else:
+                headers._headers[payload] = [insertion_point.value]
             request._headers = headers
             return request, headers
 

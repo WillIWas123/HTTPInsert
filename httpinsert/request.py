@@ -121,7 +121,10 @@ class Request:
                 data=body
                 )
         prepped=req.prepare()
-        prepped.headers = request.headers or self.headers
+        prepped.method = req.method # Prevent method normalization
+        prepped.url = req.url # Prevent URL normalization
+        prepped.headers = request.headers or self.headers # Prevent normalization of headers and header additions
+        # TODO: check requests handling of Transfer-Encoding, do we need to look deeper into that?
         if body and prepped.headers.get("Content-Length") is None: # Repairing Content-Length if no custom Content-Length header is set
             prepped.headers = prepped.headers.copy() # Ensuring original headers are untouched
             prepped.headers['Content-Length']= len(body)

@@ -5,6 +5,7 @@ from urllib.parse import urlparse, parse_qs
 import json
 import http
 import urllib3
+from threading import Lock
 from http.client import HTTPConnection
 from httpinsert import Headers
 from httpinsert.insertion_points import remove_placeholders
@@ -48,7 +49,6 @@ def requests_request(request):
 class Request:
 
     def __init__(self, method=None, url=None, headers=None, body=None,host=None,version=None):
-        self.sessions=[requests.Session()] # Increase the number of sessions to handle requests in parallel
         self.method = method
         self.url = url
         self.script=None
@@ -64,6 +64,9 @@ class Request:
         if version == "HTTP/2": # TODO: remove this constraint when requests gets support for HTTP2
             version = "HTTP/1.1" 
         self.version = version or "HTTP/1.1"
+        self.session_lock = Lock()
+        self.session_count = 0
+        self.sessions = [requests.Session()]
 
     def copy(self):
         r2 = Request(method=self.method,url=self.url,headers=self.headers,body=self.body,host=self.host,version=self.version)
@@ -103,7 +106,12 @@ class Request:
         """Send the HTTP request using the requests library."""
         response = None
         error = b""
-        current_session=random.choice(self.sessions)
+        self.session_lock.acquire()
+        session = self.sessions[self.session_count]
+        self.session_count+=1
+        if self.session_count >= len(self.sessions):
+            self.session_count=0
+        self.session_lock.release()
         request = self.copy()
         if insertions is not None:
             for insertion in insertions:
@@ -130,7 +138,7 @@ class Request:
             prepped.headers['Content-Length']= len(body)
         start_time = time.perf_counter()
         try:
-            response=current_session.send(prepped,**kwargs)
+            response=session.send(prepped,**kwargs)
             response_time = (time.perf_counter() - start_time)*1000
         except Exception as e:
             response_time = (time.perf_counter() - start_time)*1000

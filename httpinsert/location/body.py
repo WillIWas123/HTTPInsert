@@ -37,10 +37,10 @@ class Body(Location):
         elif insertion_point.location_key.startswith("body-xml"):
             return self.xml.insert_payload(request,insertion_point,payload,default_encoding)
         else:
-            raise NotImplementedError("Location '{insertion_point.location_key}' is not implemented!")
+            raise NotImplementedError(f"Location '{insertion_point.location_key}' is not implemented!")
 
         return request,request.body
 
-# TODO: implement insertion_payloads for performance gains
+    # TODO: implement insert_payloads for performance gains
 
 Body()

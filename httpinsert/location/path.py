@@ -29,7 +29,7 @@ class Path(Location):
             path+=payload
         else:
             segments[int(insertion_point.key)] = payload
-            path = quote("/" + "/".join(segments))
+            path = "/" + "/".join(segments)
         url = urlunparse(parsed_url._replace(path=path))
         request.url=url
         return request,request.url

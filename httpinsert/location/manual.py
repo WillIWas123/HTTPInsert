@@ -15,6 +15,14 @@ class Manual(Location):
                 insertion_points.append(InsertionPoint(self,"method",f"FUZ{c}Z",""))
         request.method = method
 
+        # Find manual SNI parameters
+        if request.sni and "FUZZ" in request.sni:
+            sni = request.sni
+            for c,_ in enumerate(range(request.sni.count("FUZZ"))):
+                sni = sni.replace("FUZZ",f"FUZ{c}Z",1)
+                insertion_points.append(InsertionPoint(self,"sni",f"FUZ{c}Z",""))
+            request.sni = sni
+
         parsed_url = urlparse(request.url)
         # Find manual path parameters
         path = parsed_url.path
@@ -71,6 +79,8 @@ class Manual(Location):
     def insert_payload(self,request,insertion_point,payload,default_encoding):
         if insertion_point.location_key == "method":
             return self.insert_payload_method(request,insertion_point,payload,default_encoding)
+        elif insertion_point.location_key == "sni":
+            return self.insert_payload_sni(request,insertion_point,payload,default_encoding)
         elif insertion_point.location_key == "query":
             return self.insert_payload_query(request,insertion_point,payload,default_encoding)
         elif insertion_point.location_key == "path":
@@ -85,6 +95,10 @@ class Manual(Location):
             payload = quote(payload)
         request.method = request.method.replace(insertion_point.key,payload)
         return request,request.method
+
+    def insert_payload_sni(self,request,insertion_point,payload,default_encoding):
+        request.sni = request.sni.replace(insertion_point.key,payload)
+        return request,request.sni
 
     def insert_payload_query(self,request,insertion_point,payload,default_encoding):
         if default_encoding is True:

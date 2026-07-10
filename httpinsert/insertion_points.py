@@ -48,6 +48,8 @@ def remove_placeholders(request):
 
     request.method = re.sub(r"FUZ\d*Z","",request.method)
     request.url=re.sub(r"FUZ\d*Z","",request.url)
+    if getattr(request,"sni",None):
+        request.sni = re.sub(r"FUZ\d*Z","",request.sni)
     if request.body:
         request.body=re.sub(rb"FUZ\d*Z",b"",request.body)
     new_headers=Headers()

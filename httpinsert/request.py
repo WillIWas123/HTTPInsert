@@ -7,12 +7,31 @@ import http
 import urllib3
 from threading import Lock
 from http.client import HTTPConnection
+from requests.adapters import HTTPAdapter
 from httpinsert import Headers
 from httpinsert.insertion_points import remove_placeholders
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 requests.utils._validate_header_part = lambda a,b,c: None # Disables verification of header names in requests
 http.client._is_legal_header_name = lambda a:True # Disables verification of header names in urllib3
+
+class SNIAdapter(HTTPAdapter):
+    """HTTPAdapter that forces the TLS SNI (server_hostname) independently of the URL host."""
+
+    def __init__(self, server_hostname=None, **kwargs):
+        self._server_hostname = server_hostname
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        if self._server_hostname:
+            pool_kwargs["server_hostname"] = self._server_hostname
+        super().init_poolmanager(connections, maxsize, block=block, **pool_kwargs)
+
+    def proxy_manager_for(self, proxy, **proxy_kwargs):
+        if self._server_hostname:
+            cpk = proxy_kwargs.setdefault("connection_pool_kw", {})
+            cpk["server_hostname"] = self._server_hostname
+        return super().proxy_manager_for(proxy, **proxy_kwargs)
 
 def raw_request(scheme,data):
     
@@ -48,9 +67,10 @@ def requests_request(request):
 
 class Request:
 
-    def __init__(self, method=None, url=None, headers=None, body=None,host=None,version=None):
+    def __init__(self, method=None, url=None, headers=None, body=None,host=None,version=None,sni=None):
         self.method = method
         self.url = url
+        self.sni = sni
         self.script=None
         if isinstance(headers,dict):
             new_headers = Headers()
@@ -69,7 +89,7 @@ class Request:
         self.sessions = [requests.Session()]
 
     def copy(self):
-        r2 = Request(method=self.method,url=self.url,headers=self.headers,body=self.body,host=self.host,version=self.version)
+        r2 = Request(method=self.method,url=self.url,headers=self.headers,body=self.body,host=self.host,version=self.version,sni=self.sni)
         r2.sessions=self.sessions
         return r2
 
@@ -106,12 +126,6 @@ class Request:
         """Send the HTTP request using the requests library."""
         response = None
         error = b""
-        self.session_lock.acquire()
-        session = self.sessions[self.session_count]
-        self.session_count+=1
-        if self.session_count >= len(self.sessions):
-            self.session_count=0
-        self.session_lock.release()
         request = self.copy()
         if insertions is not None:
             for insertion in insertions:
@@ -120,6 +134,19 @@ class Request:
         HTTPConnection._http_vsn_str = request.version # TODO: This will not work great if fuzzing the version string. Please make modifications here whenever HTTP2 support is launched.
 
         request = remove_placeholders(request) # Removes any custom placeholders in the request
+        sni = request.sni
+        self.session_lock.acquire()
+        session = self.sessions[self.session_count]
+        self.session_count+=1
+        if self.session_count >= len(self.sessions):
+            self.session_count=0
+        if getattr(session, "_httpinsert_sni", None) != sni: # Make the session SNI-aware, re-mounting only when the SNI changes
+            if sni:
+                session.mount("https://", SNIAdapter(server_hostname=sni))
+            else:
+                session.mount("https://", HTTPAdapter()) # Reset to the default adapter
+            session._httpinsert_sni = sni
+        self.session_lock.release()
         body = data or request.body
         if not body:
             body = None
